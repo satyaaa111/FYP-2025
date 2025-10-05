@@ -1,0 +1,27 @@
+
+[
+  {
+    "zone_id": "Zone 1",
+    "alert_type": "low_moisture",
+    "severity": "high",
+    "message": "Soil moisture dropped below optimal level.",
+    "resolved": false,
+    "resolved_at": null
+  },
+  {
+    "zone_id": "Zone 2",
+    "alert_type": "pump_failure",
+    "severity": "critical",
+    "message": "Irrigation pump is not responding.",
+    "resolved": false,
+    "resolved_at": null
+  },
+  {
+    "zone_id": "Zone 1",
+    "alert_type": "disease_detected",
+    "severity": "medium",
+    "message": "Possible leaf spot detected on crops.",
+    "resolved": true,
+    "resolved_at": "2025-09-08T09:30:00Z"
+  }
+]

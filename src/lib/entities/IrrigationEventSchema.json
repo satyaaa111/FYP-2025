@@ -1,0 +1,36 @@
+{
+  "name": "IrrigationEvent",
+  "type": "object",
+  "properties": {
+    "zone_id": {
+      "type": "string",
+      "description": "Zone identifier"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "pump_on",
+        "pump_off",
+        "manual_override",
+        "auto_trigger"
+      ],
+      "description": "Type of irrigation event"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Duration of irrigation in minutes"
+    },
+    "trigger_reason": {
+      "type": "string",
+      "description": "Reason for triggering irrigation"
+    },
+    "water_amount_liters": {
+      "type": "number",
+      "description": "Amount of water used in liters"
+    }
+  },
+  "required": [
+    "zone_id",
+    "event_type"
+  ]
+}

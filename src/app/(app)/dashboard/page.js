@@ -1,0 +1,188 @@
+"use client";
+import ProtectedRoute from '@/components/ProtectedRoute';
+import React, { useState, useEffect, useCallback } from "react";
+import {SensorReading} from "@/lib/entities/SensorReading";
+import {PlantHealthRecord} from "@/lib/entities/PlantHealthRecord";
+import {SystemAlert} from "@/lib/entities/SystemAlert";
+// import { IrrigationEvent } from "@/lib/SensorReading";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge";
+// import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Thermometer, 
+  Droplets, 
+  Wind, 
+  Sun, 
+  // Gauge, 
+  // Activity,
+  // AlertTriangle,
+  // CheckCircle,
+  // Sprout,
+  FlaskConical
+} from "lucide-react";
+// import { motion } from "framer-motion";
+
+import ZoneSelector from "@/components/dashboard/ZoneSelector";
+import SensorCard from "@/components/dashboard/SensorCard";
+import PlantHealthWidget from "@/components/dashboard/PlantHealthWidget";
+import RecentAlerts from "@/components/dashboard/RecentAlerts";
+import QuickStats from "@/components/dashboard/QuickStats";
+
+export default function Dashboard() {
+  const [selectedZone, setSelectedZone] = useState("Zone 1");
+  const [sensorData, setSensorData] = useState(null);
+  const [plantHealth, setPlantHealth] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [sensorReads, healthRecords, systemAlerts] = await Promise.all([
+        SensorReading.filter({ zone_id: selectedZone }, "-created_date", 1),
+        PlantHealthRecord.filter({ zone_id: selectedZone }, "-created_date", 1), 
+        SystemAlert.filter({ zone_id: selectedZone, resolved: false }, "-created_date", 5)
+      ]);
+
+      setSensorData(sensorReads[0] || null);
+      setPlantHealth(healthRecords[0] || null);
+      setAlerts(systemAlerts);
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    }
+    setLoading(false);
+  }, [selectedZone]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const zones = ["Zone 1", "Zone 2", "Zone 3"];
+
+  return (
+    <ProtectedRoute>
+    <div className="p-4 md:p-8 bg-gradient-to-br from-green-50 via-blue-50 to-green-100 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-700 to-green-600 bg-clip-text text-transparent">
+              Farm Dashboard
+            </h1>
+            <p className="text-green-600 mt-2">Real-time monitoring and intelligent insights</p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <ZoneSelector 
+              zones={zones}
+              selectedZone={selectedZone}
+              onZoneChange={setSelectedZone}
+            />
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur rounded-xl border border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-700 font-medium text-sm">Live</span>
+            </div>
+          </div>
+        </div>
+
+        <QuickStats 
+          sensorData={sensorData}
+          plantHealth={plantHealth}
+          alerts={alerts}
+          loading={loading}
+        />
+
+        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <SensorCard
+                title="Soil Moisture"
+                value={sensorData?.soil_moisture}
+                unit="%"
+                icon={Droplets}
+                color="blue"
+                optimal={{ min: 40, max: 70 }}
+                loading={loading}
+              />
+              <SensorCard
+                title="Temperature"
+                value={sensorData?.temperature}
+                unit="°C"
+                icon={Thermometer}
+                color="red"
+                optimal={{ min: 20, max: 30 }}
+                loading={loading}
+              />
+              <SensorCard
+                title="Humidity"
+                value={sensorData?.humidity}
+                unit="%"
+                icon={Wind}
+                color="green"
+                optimal={{ min: 50, max: 80 }}
+                loading={loading}
+              />
+              <SensorCard
+                title="Light Intensity"
+                value={sensorData?.light_intensity}
+                unit="lux"
+                icon={Sun}
+                color="yellow"
+                optimal={{ min: 200, max: 800 }}
+                loading={loading}
+              />
+            </div>
+
+            <Card className="bg-white/70 backdrop-blur border-green-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 dark:text-green-800">
+                  <FlaskConical className="w-5 h-5" />
+                  Soil Analysis - NPK Levels
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                    <div className="text-2xl font-bold text-blue-700">
+                      {sensorData?.nitrogen || 0}
+                    </div>
+                    <div className="text-blue-600 font-medium">Nitrogen (N)</div>
+                    <div className="text-xs text-blue-500 mt-1">mg/kg</div>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+                    <div className="text-2xl font-bold text-purple-700">
+                      {sensorData?.phosphorus || 0}
+                    </div>
+                    <div className="text-purple-600 font-medium">Phosphorus (P)</div>
+                    <div className="text-xs text-purple-500 mt-1">mg/kg</div>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl">
+                    <div className="text-2xl font-bold text-orange-700">
+                      {sensorData?.potassium || 0}
+                    </div>
+                    <div className="text-orange-600 font-medium">Potassium (K)</div>
+                    <div className="text-xs text-orange-500 mt-1">mg/kg</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <PlantHealthWidget 
+              plantHealth={plantHealth}
+              loading={loading}
+            />
+            
+            <RecentAlerts 
+              alerts={alerts}
+              loading={loading}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    </ProtectedRoute>
+  );
+}

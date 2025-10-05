@@ -1,0 +1,49 @@
+{
+  "name": "SensorReading",
+  "type": "object",
+  "properties": {
+    "zone_id": {
+      "type": "string",
+      "description": "Zone identifier (Zone 1, Zone 2, etc.)"
+    },
+    "soil_moisture": {
+      "type": "number",
+      "description": "Soil moisture percentage"
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Air temperature in Celsius"
+    },
+    "humidity": {
+      "type": "number",
+      "description": "Air humidity percentage"
+    },
+    "soil_ph": {
+      "type": "number",
+      "description": "Soil pH level"
+    },
+    "nitrogen": {
+      "type": "number",
+      "description": "Nitrogen content in mg/kg"
+    },
+    "phosphorus": {
+      "type": "number",
+      "description": "Phosphorus content in mg/kg"
+    },
+    "potassium": {
+      "type": "number",
+      "description": "Potassium content in mg/kg"
+    },
+    "light_intensity": {
+      "type": "number",
+      "description": "Light intensity reading"
+    },
+    "wind_speed": {
+      "type": "number",
+      "description": "Wind speed in m/s"
+    }
+  },
+  "required": [
+    "zone_id"
+  ]
+}

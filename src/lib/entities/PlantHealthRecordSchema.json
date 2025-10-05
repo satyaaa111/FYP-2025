@@ -1,0 +1,40 @@
+{
+  "name": "PlantHealthRecord",
+  "type": "object",
+  "properties": {
+    "zone_id": {
+      "type": "string",
+      "description": "Zone identifier"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL of plant image from ESP32-CAM"
+    },
+    "health_status": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "diseased",
+        "warning",
+        "unknown"
+      ],
+      "description": "Overall plant health status"
+    },
+    "disease_type": {
+      "type": "string",
+      "description": "Type of disease detected (if any)"
+    },
+    "confidence_score": {
+      "type": "number",
+      "description": "AI confidence score (0-100)"
+    },
+    "recommendations": {
+      "type": "string",
+      "description": "Recommended actions"
+    }
+  },
+  "required": [
+    "zone_id",
+    "health_status"
+  ]
+}

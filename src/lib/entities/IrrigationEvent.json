@@ -1,0 +1,23 @@
+[
+  {
+    "zone_id": "Zone-1",
+    "event_type": "pump_on",
+    "duration_minutes": 30,
+    "trigger_reason": "Soil moisture below threshold",
+    "water_amount_liters": 120
+  },
+  {
+    "zone_id": "Zone-2",
+    "event_type": "manual_override",
+    "duration_minutes": 15,
+    "trigger_reason": "Manual irrigation by farmer",
+    "water_amount_liters": 60
+  },
+  {
+    "zone_id": "Zone-3",
+    "event_type": "auto_trigger",
+    "duration_minutes": 25,
+    "trigger_reason": "High temperature and low soil moisture",
+    "water_amount_liters": 100
+  }
+]

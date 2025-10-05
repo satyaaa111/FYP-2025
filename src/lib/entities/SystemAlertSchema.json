@@ -1,0 +1,54 @@
+{
+  "name": "SystemAlert",
+  "type": "object",
+  "properties": {
+    "zone_id": {
+      "type": "string",
+      "description": "Zone identifier"
+    },
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "low_moisture",
+        "high_temperature",
+        "disease_detected",
+        "pump_failure",
+        "sensor_offline",
+        "low_battery",
+        "high_ph",
+        "low_ph"
+      ],
+      "description": "Type of alert"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "Alert severity level"
+    },
+    "message": {
+      "type": "string",
+      "description": "Alert message"
+    },
+    "resolved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the alert has been resolved"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the alert was resolved"
+    }
+  },
+  "required": [
+    "zone_id",
+    "alert_type",
+    "severity",
+    "message"
+  ]
+}
