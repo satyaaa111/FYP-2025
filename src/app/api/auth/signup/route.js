@@ -1,13 +1,15 @@
 // src/app/api/auth/signup/route.js
 import { NextResponse } from 'next/server';
-import { findUserByEmail, createUser } from '@/lib/data/db';
+import { findUserByEmail, createUser } from '@/lib/userDB';
 
 export async function POST(request) {
   try {
     const { email, password, name, role } = await request.json();
 
     // Check if user already exists
-    if (findUserByEmail(email)) {
+    const existingUser = await findUserByEmail(email);
+
+    if (existingUser) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
@@ -17,10 +19,10 @@ export async function POST(request) {
       email,
       password, // In production, hash this with bcrypt!
       name: name || email.split('@')[0],
-      role: role || 'buyer'
+      role: role || 'farmer'
     };
 
-    const savedUser = createUser(newUser);
+    const savedUser = await createUser(newUser);
     if (!savedUser) {
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
     }

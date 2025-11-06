@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { SensorReading } from "@/lib/entities/SensorReading";
-import { IrrigationEvent } from "@/lib/entities/IrrigationEvent";
-import { SystemAlert } from "@/lib/entities/SystemAlert";
+// import { SensorReading } from "@/lib/entities/SensorReading";
+// import { IrrigationEvent } from "@/lib/entities/IrrigationEvent";
+// import { SystemAlert } from "@/lib/entities/SystemAlert";
 // import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, BarChart3, Activity, Calendar } from "lucide-react";
-
+import { getAnalyticsData } from '@/lib/actions';
 import ZoneSelector from "@/components/dashboard/ZoneSelector";
 import SensorTrendChart from "@/components/analytics/SensorTrendChart";
 import IrrigationAnalytics from "@/components/analytics/IrrigationAnalytics";
@@ -25,15 +25,15 @@ export default function Analytics() {
     try {
       const limit = timeRange === "24h" ? 24 : timeRange === "7d" ? 50 : 100;
       
-      const [sensors, irrigation, alerts] = await Promise.all([
-        SensorReading.filter({ zone_id: selectedZone }, "-created_date", limit),
-        IrrigationEvent.filter({ zone_id: selectedZone }, "-created_date", limit),
-        SystemAlert.filter({ zone_id: selectedZone }, "-created_date", limit)
-      ]);
+      const { sensorData, irrigationData, alertData, error } = await getAnalyticsData(selectedZone, timeRange);
+
+      if (error) {
+        throw new Error(error);
+      }
       
-      setSensorData(sensors);
-      setIrrigationData(irrigation);
-      setAlertData(alerts);
+      setSensorData(sensorData);
+      setIrrigationData(irrigationData);
+      setAlertData(alertData);
     } catch (error) {
       console.error("Error loading analytics data:", error);
     }

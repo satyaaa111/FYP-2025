@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getAuthCookie } from '@/lib/auth';
-import { findUserByEmail } from '@/lib/data/db';
+import { findUserByEmail } from '@/lib/userDB';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 

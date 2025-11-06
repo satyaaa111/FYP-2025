@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { setAuthCookie } from '@/lib/auth';
-import { findUserByEmail } from '@/lib/data/db';
+import { findUserByEmail } from '@/lib/userDB';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 
@@ -11,7 +11,7 @@ export async function POST(request) {
     const { email, password } = await request.json();
 
     // Find user in JSON file
-    const user = findUserByEmail(email);
+    const user = await findUserByEmail(email);
     
     if (!user || user.password !== password) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

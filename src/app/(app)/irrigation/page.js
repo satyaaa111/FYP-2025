@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { IrrigationEvent } from "@/lib/entities/IrrigationEvent";
-import { SensorReading } from "@/lib/entities/SensorReading";
+// import { IrrigationE } from "@/lib/entities/IrrigationEvent";
+// import { SensorR } from "@/lib/entities/SensorReading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Droplets, Play, Square, Clock, Gauge } from "lucide-react";
 import { format } from "date-fns";
-
+import { getIrrigationPageData, triggerManualPump } from "@/lib/actions";
 import ZoneSelector from "@/components/dashboard/ZoneSelector";
 import IrrigationCard from "@/components/irrigation/IrrigationCard";
 import WaterUsageChart from "@/components/irrigation/WaterUsageChart";
@@ -25,13 +25,14 @@ export default function Irrigation() {
   const loadIrrigationData = useCallback(async () => {
     setLoading(true);
     try {
-      const [events, sensors] = await Promise.all([
-        IrrigationEvent.filter({ zone_id: selectedZone }, "-created_date", 10),
-        SensorReading.filter({ zone_id: selectedZone }, "-created_date", 1)
-      ]);
+      const { irrigationEvents, sensorData, error } = await getIrrigationPageData(selectedZone);
       
-      setIrrigationEvents(events);
-      setSensorData(sensors[0] || null);
+      if (error) {
+        throw new Error(error);
+      }
+      
+      setIrrigationEvents(irrigationEvents);
+      setSensorData(sensorData);
     } catch (error) {
       console.error("Error loading irrigation data:", error);
     }
@@ -44,15 +45,16 @@ export default function Irrigation() {
 
   const handleManualPump = async (action) => {
     try {
-      await IrrigationEvent.create({
-        zone_id: selectedZone,
-        event_type: action === "start" ? "pump_on" : "pump_off",
-        trigger_reason: "Manual override",
-        duration_minutes: action === "start" ? null : 5
-      });
-      
-      setPumpStatus(action === "start" ? "on" : "off");
-      loadIrrigationData(); // Reload data after manual pump action
+      const { success, error } = await triggerManualPump(selectedZone, action);
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      if (success) {
+        setPumpStatus(action === "start" ? "on" : "off");
+        loadIrrigationData(); // Reload data after manual pump action
+      }
     } catch (error) {
       console.error("Error controlling pump:", error);
     }

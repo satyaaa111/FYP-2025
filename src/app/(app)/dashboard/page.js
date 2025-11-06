@@ -1,28 +1,16 @@
 "use client";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import React, { useState, useEffect, useCallback } from "react";
-import {SensorReading} from "@/lib/entities/SensorReading";
-import {PlantHealthRecord} from "@/lib/entities/PlantHealthRecord";
-import {SystemAlert} from "@/lib/entities/SystemAlert";
-// import { IrrigationEvent } from "@/lib/SensorReading";
-
+import { getDashboardData } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Thermometer, 
   Droplets, 
   Wind, 
   Sun, 
-  // Gauge, 
-  // Activity,
-  // AlertTriangle,
-  // CheckCircle,
-  // Sprout,
   FlaskConical
 } from "lucide-react";
-// import { motion } from "framer-motion";
 
 import ZoneSelector from "@/components/dashboard/ZoneSelector";
 import SensorCard from "@/components/dashboard/SensorCard";
@@ -40,15 +28,14 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sensorReads, healthRecords, systemAlerts] = await Promise.all([
-        SensorReading.filter({ zone_id: selectedZone }, "-created_date", 1),
-        PlantHealthRecord.filter({ zone_id: selectedZone }, "-created_date", 1), 
-        SystemAlert.filter({ zone_id: selectedZone, resolved: false }, "-created_date", 5)
-      ]);
-
-      setSensorData(sensorReads[0] || null);
-      setPlantHealth(healthRecords[0] || null);
-      setAlerts(systemAlerts);
+      const { sensorData, plantHealth, alerts, error } = await getDashboardData(selectedZone);
+      if (error) {
+        // Handle the error returned from the server
+        throw new Error(error);
+      }
+      setSensorData(sensorData);
+      setPlantHealth(plantHealth);
+      setAlerts(alerts);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     }

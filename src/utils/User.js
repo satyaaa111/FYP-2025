@@ -20,7 +20,7 @@ export const User = {
     //const token = localStorage.getItem("authToken");
     const token = "fake-token"; // For testing purposes
     if (token) {
-      return { username: "Farmer User", role: "Field Manager" };
+      return { username: "Farmer User", role: "farmer" };
     }
     return null;
   }

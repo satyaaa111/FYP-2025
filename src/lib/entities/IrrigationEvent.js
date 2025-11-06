@@ -1,43 +1,47 @@
-// /lib/IrrigationEvent.js
-let irrigationEvents = [
-  {
-    id: 1,
-    zone_id: "Zone 1",
-    event_type: "pump_on",
-    duration_minutes: 15,
-    trigger_reason: "Soil moisture below threshold",
-    water_amount_liters: 120,
-    created_date: new Date(Date.now() - 1000 * 60 * 60).toISOString() // 1 hr ago
-  },
-  {
-    id: 2,
-    zone_id: "Zone 2",
-    event_type: "pump_off",
-    duration_minutes: 10,
-    trigger_reason: "Manual override",
-    water_amount_liters: 80,
-    created_date: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 min ago
-  }
-];
+import connectToDatabase from '../mongodb';
+import IrrigationEvent from '@/models/IrrigationSchema';
 
-export const IrrigationEvent = {
+export const IrrigationE = {
+  /**
+   * Filter irrigation events based on query.
+   * @param {object} query - MongoDB query object (e.g., { zone_id: "Zone 1" })
+   * @param {string} sortField - Field to sort by (e.g., "-created_date")
+   * @param {number} limit - Max number of results
+   */
   async filter(query, sortField = "-created_date", limit = 10) {
-    let result = irrigationEvents.filter(e => e.zone_id === query.zone_id);
+    try {
+      await connectToDatabase();
 
-    if (sortField.startsWith("-")) {
-      const field = sortField.slice(1);
-      result.sort((a, b) => new Date(b[field]) - new Date(a[field]));
+      // Convert sortField string to MongoDB sort object
+      const sortOptions = {};
+      const field = sortField.startsWith("-") ? sortField.slice(1) : sortField;
+      sortOptions[field] = sortField.startsWith("-") ? -1 : 1;
+
+      const result = await IrrigationEvent.find(query)
+        .sort(sortOptions)
+        .limit(limit)
+        .lean();
+        
+      return result;
+    } catch (error) {
+      console.error('Error filtering irrigation events:', error);
+      return [];
     }
-    return result.slice(0, limit);
   },
 
+  /**
+   * Create a new irrigation event.
+   * @param {object} data - Data for the new event
+   */
   async create(data) {
-    const event = {
-      id: Date.now(),
-      created_date: new Date().toISOString(),
-      ...data
-    };
-    irrigationEvents.unshift(event);
-    return event;
+    try {
+      await connectToDatabase();
+      // The 'created_date' is set by default from the schema
+      const event = await IrrigationEvent.create(data);
+      return event.toObject(); // Convert Mongoose doc to plain object
+    } catch (error) {
+      console.error('Error creating irrigation event:', error);
+      return null;
+    }
   }
 };

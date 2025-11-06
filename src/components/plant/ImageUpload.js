@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { PlantHealthRecord } from "@/lib/entities/PlantHealthRecord";
+// import { PlantHealthR } from "@/lib/actions";
 // import { UploadFile, InvokeLLM } from "@/integrations/Core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 // import { Progress } from "@/components/ui/progress";
 import { Upload, Camera, X } from "lucide-react";
+import { analyzePlantImage } from "@/lib/actions";
 
 export default function ImageUpload({ zone, onComplete }) {
   const [file, setFile] = useState(null);
@@ -20,77 +21,44 @@ export default function ImageUpload({ zone, onComplete }) {
 
   const handleUpload = async () => {
     if (!file) return;
-    
-    setUploading(true);
-    setProgress(10);
+    
+    setUploading(true);
+    setProgress(10); // 1. Set initial progress
 
-    try {
-    // Upload image
-    //   const { file_url } = await UploadFile({ file });
-    //   setProgress(40);
+    try {
+      // 2. Create FormData and append data
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("zone", zone);
 
-      // Analyze image with AI
-      const analysisPrompt = `
-        Analyze this plant image for health status and diseases.
-        Look for signs of:
-        - Leaf discoloration or spots
-        - Wilting or drooping
-        - Pest damage
-        - Fungal infections
-        - Nutrient deficiencies
-        
-        Determine if the plant is healthy or has issues.
-        If diseased, identify the specific disease type.
-        Provide actionable recommendations.
-      `;
+      setProgress(30); // 2. "Uploading"
 
-      const analysis = await InvokeLLM({
-        prompt: analysisPrompt,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            health_status: {
-              type: "string", 
-              enum: ["healthy", "diseased", "warning", "unknown"]
-            },
-            disease_type: { type: "string" },
-            confidence_score: { 
-              type: "number",
-              minimum: 0,
-              maximum: 100
-            },
-            recommendations: { type: "string" }
-          }
-        }
-      });
+      // 3. Call the single Server Action
+      // ALL the complex logic is now on the server.
+      const result = await analyzePlantImage(formData);
 
-      setProgress(80);
-    var file_url="https://example.com/plant.jpg"
+      setProgress(80); // 3. "Analyzing"
 
-    // Save to database
-      await PlantHealthRecord.create({
-        zone_id: zone,
-        image_url: file_url,
-        health_status: analysis.health_status || "unknown",
-        disease_type: analysis.disease_type || "N/A",
-        confidence_score: analysis.confidence_score || 0,
-        recommendations: analysis.recommendations || "No recommendations available."
-      });
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
-      setProgress(100);
-      setTimeout(() => {
-        onComplete();
-      }, 1000);
+      // 4. Handle success
+      setProgress(100);
+      setTimeout(() => {
+        onComplete(); // Refresh the parent page's list
+      }, 1000);
 
-    } catch (error) {
-      console.error("Error analyzing plant image:", error);
-    }
+    } catch (error) {
+      console.error("Error analyzing plant image:", error);
+      // You should add a user-facing error toast or message here
+    }
 
-    setUploading(false);
-    setProgress(0);
-    setFile(null);
-  };
+    // 5. Reset the component
+    setUploading(false);
+    setProgress(0);
+    setFile(null);
+  };
 
   return (
     <Card className="bg-white/70 backdrop-blur border-green-200 mb-6">

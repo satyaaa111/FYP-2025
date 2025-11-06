@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { PlantHealthRecord } from "@/lib/entities/PlantHealthRecord";
+// import { PlantHealthRecord } from "@/lib/entities/PlantHealthRecord";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sprout, Camera, RefreshCw, Upload } from "lucide-react";
-
+import { getPlantHealthData } from '@/lib/actions';
 import ZoneSelector from "@/components/dashboard/ZoneSelector";
 import PlantHealthCard from "@/components/plant/PlantHealthCard";
 import ImageUpload from "@/components/plant/ImageUpload";
@@ -21,11 +21,11 @@ export default function PlantHealth() {
   const loadHealthData = useCallback(async () => {
     setLoading(true);
     try {
-      const records = await PlantHealthRecord.filter(
-        { zone_id: selectedZone }, 
-        "-created_date", 
-        10
-      );
+      const { records, error } = await getPlantHealthData(selectedZone);
+
+      if (error) {
+        throw new Error(error);
+      }
       setHealthRecords(records);
     } catch (error) {
       console.error("Error loading plant health data:", error);

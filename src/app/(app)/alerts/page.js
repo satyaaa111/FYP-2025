@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { SystemAlert } from "@/lib/entities/SystemAlert";
+// import { SystemAlert } from "@/lib/entities/SystemAlert";
+import { getAlertsData, resolveAlert } from "@/lib/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,19 +20,24 @@ export default function Alerts() {
   const loadAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      let query = {};
+      // let query = {};
       
-      if (filter === "active") {
-        query.resolved = false;
-      } else if (filter === "resolved") {
-        query.resolved = true;
-      }
+      // if (filter === "active") {
+      //   query.resolved = false;
+      // } else if (filter === "resolved") {
+      //   query.resolved = true;
+      // }
       
-      if (severityFilter !== "all") {
-        query.severity = severityFilter;
-      }
+      // if (severityFilter !== "all") {
+      //   query.severity = severityFilter;
+      // }
 
-      const alertsData = await SystemAlert.filter(query, "-created_date", 50);
+      // const alertsData = await SystemAlert.filter(query, "-created_date", 50);
+      const { alerts: alertsData, error } = await getAlertsData(filter, severityFilter);
+
+      if (error) {
+        throw new Error(error);
+      }
       setAlerts(alertsData);
     } catch (error) {
       console.error("Error loading alerts:", error);
@@ -45,18 +51,22 @@ export default function Alerts() {
 
   const handleResolveAlert = async (alertId) => {
     try {
-      await SystemAlert.update(alertId, { 
-        resolved: true, 
-        resolved_at: new Date().toISOString() 
-      });
-      loadAlerts();
+      const { success, error } = await resolveAlert(alertId);
+
+      if (error) {
+        throw new Error(error);
+      }
+      if (success) {
+        // Refresh the list after a successful update
+        loadAlerts();
+      }
     } catch (error) {
       console.error("Error resolving alert:", error);
     }
   };
 
   const activeAlerts = alerts.filter(a => !a.resolved);
-  const resolvedAlerts = alerts.filter(a => a.resolved);
+  const resolvedAlerts = alerts.filter(a => a.resolved);
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 min-h-screen">
