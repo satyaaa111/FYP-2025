@@ -7,7 +7,7 @@ export default function Home() {
   const router = useRouter();
 
   const handleRedirect = () => {
-    router.push('/dashboard'); // Replace with your target path
+    router.push('/login'); // Replace with your target path
   };
   return (
       <div className='text-3xl font-bold p-4 flex flex-col gap-5 justify-center items-center min-h-screen'>
@@ -18,7 +18,7 @@ export default function Home() {
           onClick={handleRedirect}
           className="dark:bg-green-600 hover:bg-green-700 dark:text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md"
         >
-          Go to Dashboard
+          Go to Login page
         </button>
       </div>
   );
