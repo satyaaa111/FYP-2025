@@ -10,7 +10,6 @@ export default function Home() {
     router.push('/dashboard'); // Replace with your target path
   };
   return (
-    <ProtectedRoute>
       <div className='text-3xl font-bold p-4 flex flex-col gap-5 justify-center items-center min-h-screen'>
         <div className="">
           Hola! Welcome to Agri-Smart
@@ -22,6 +21,5 @@ export default function Home() {
           Go to Dashboard
         </button>
       </div>
-    </ProtectedRoute>
   );
 }

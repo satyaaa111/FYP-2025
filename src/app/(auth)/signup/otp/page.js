@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ShieldCheck, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 
-// 1. Create a component for the actual form logic
-function OtpForm() {
+// 1. Logic and UI moved into a sub-component
+function SignupOtpForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  // Extract email from search params safely
+  const searchParams = new URLSearchParams(
+  typeof window !== "undefined" ? window.location.search : ""
+  );
+
+  // Safely extract email from URL
   const email = searchParams.get("email") || "your email";
   
   const [otp, setOtp] = useState("");
@@ -33,7 +35,7 @@ function OtpForm() {
       const response = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp, email }), // Included email in payload just in case
+        body: JSON.stringify({ otp, email }),
       });
 
       const data = await response.json();
@@ -62,7 +64,7 @@ function OtpForm() {
           <ShieldCheck className="h-8 w-8 text-green-600" />
         </div>
         <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-          Two-Step Verification
+          Verify Your Signup
         </h2>
         <p className="mt-2 text-sm text-gray-600">
           We sent a verification code to <br />
@@ -126,7 +128,8 @@ function OtpForm() {
         <p className="text-sm text-gray-600">
           Didn't receive the code?{' '}
           <button 
-            onClick={() => alert("Trigger Resend Logic Here")}
+            type="button"
+            onClick={() => alert("Resend logic here")}
             className="font-medium text-green-600 hover:text-green-500"
           >
             Resend
@@ -137,17 +140,17 @@ function OtpForm() {
   );
 }
 
-// 2. The Main Page Export with Suspense
-export default function OtpVerificationPage() {
+// 2. The Exported Page with the mandatory Suspense boundary
+export default function SignupOtpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
       <Suspense fallback={
         <div className="flex flex-col items-center">
           <Loader2 className="animate-spin h-10 w-10 text-green-600" />
-          <p className="mt-4 text-gray-600">Loading verification page...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       }>
-        <OtpForm />
+        <SignupOtpForm />
       </Suspense>
     </div>
   );

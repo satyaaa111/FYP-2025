@@ -3,7 +3,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import React, { useState, useEffect, useCallback } from "react";
 import { getDashboardData } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Thermometer, 
   Droplets, 
@@ -90,7 +90,6 @@ export default function Dashboard() {
   const zones = ["Zone 1", "Zone 2", "Zone 3"];
 
   return (
-    <ProtectedRoute>
     <div className="p-4 md:p-8 bg-gradient-to-br from-green-50 via-blue-50 to-green-100 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -211,6 +210,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-    </ProtectedRoute>
   );
 }
