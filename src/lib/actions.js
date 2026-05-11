@@ -5,53 +5,55 @@ import { PlantHealthR } from "@/lib/entities/PlantHealthRecord"; // Your existin
 import { SystemA } from "@/lib/entities/SystemAlert"; // Your existing DB logic
 import { IrrigationE } from "@/lib/entities/IrrigationEvent"; // Your existing DB logic
 
+
+const INFERENCE_URL =
+  process.env.INFERENCE_SERVER_URL || "http://localhost:5000/predict";
+
+// Class names must match the order in your balanced_tea_model.pth
+// Indices: 0=Algal, 1=Brown, 2=Gray, 3=Helopeltis, 4=Red Spider, 5=Green Bug, 6=Healthy
+const CLASS_NAMES = [
+  "Tea Algal Leaf Spot",
+  "Brown Blight",
+  "Gray Blight",
+  "Helopeltis",
+  "Red Spider",
+  "Green Mirid Bug",
+  "Healthy Leaf",
+];
+
+const SEVERITY_MAP = {
+  "Tea Algal Leaf Spot": "medium",
+  "Brown Blight":        "high",
+  "Gray Blight":         "high",
+  "Helopeltis":          "high",
+  "Red Spider":          "medium",
+  "Green Mirid Bug":     "medium",
+  "Healthy Leaf":        "low",
+};
+
+const RECOMMENDATION_MAP = {
+  "Tea Algal Leaf Spot":
+    "Apply copper-based fungicide. Improve air circulation between plants.",
+  "Brown Blight":
+    "Remove infected leaves immediately. Apply Bordeaux mixture. Avoid overhead irrigation.",
+  "Gray Blight":
+    "Prune affected branches. Apply mancozeb fungicide. Improve drainage.",
+  "Helopeltis":
+    "Apply systemic insecticide (imidacloprid). Monitor surrounding plants.",
+  "Red Spider":
+    "Apply miticide spray. Increase humidity around plants. Introduce predatory mites.",
+  "Green Mirid Bug":
+    "Apply pyrethroid insecticide in early morning. Remove weed hosts nearby.",
+  "Healthy Leaf":
+    "No treatment needed. Continue regular monitoring schedule.",
+};
+
+
+
 // A helper to safely serialize data for the client
 function serialize(data) {
   return JSON.parse(JSON.stringify(data));
 }
-
-// --- Dashboard Action ---
-
-
-// --- HELPER FUNCTION: Fetches latest sensor data from Firebase ---
-// --- HELPER FUNCTION: Fetches latest sensor data from Firebase ---
-// async function getFirebaseSensorData(selectedZone) {
-    
-//     // --- MODIFICATION ---
-//     // This assumes all data at the root belongs to "Zone 1"
-//     // and will return nothing for other zones.
-    
-//     if (selectedZone !== "Zone 1") {
-//         console.log(`Data for ${selectedZone} is not available.`);
-//         return null;
-//     }
-
-//     // We fetch the ROOT of the database, not a specific path.
-//     const url = `https://agri-smart-63464-default-rtdb.asia-southeast1.firebasedatabase.app/.json?orderBy="$key"&limitToLast=1`;
-
-//     try {
-//         const response = await fetch(url);
-//         if (!response.ok) {
-//             throw new Error(`Firebase fetch failed (${response.status}): ${response.statusText}`);
-//         }
-        
-//         const data = await response.json();
-        
-//         if (!data) {
-//             console.log(`No sensor data found at the root.`);
-//             return null;
-//         }
-
-//         const latestReadingData = Object.values(data)[0];
-        
-//         // Map it, but we MUST hard-code "Zone 1" as the zone_id
-//         return mapFirebaseToSchema(latestReadingData, "Zone 1");
-
-//     } catch (error) {
-//         console.error(`Error fetching from Firebase root:`, error.message);
-//         return null; 
-//     }
-// }
 
 export async function getDashboardData(selectedZone) {
  try {
@@ -261,6 +263,77 @@ export async function analyzePlantImage(formData) {
 
   } catch (error) {
     console.error("Error analyzing plant image:", error);
+    return { error: error.message, success: false };
+  }
+}
+
+export async function analyzePlantImage(formData) {
+  try {
+    const file = formData.get("file");
+    const zone = formData.get("zone");
+
+    if (!file || !zone) throw new Error("File and zone are required.");
+
+    // ── 1. Upload image to Firebase Storage ──────────────────────────────
+    // We import dynamically to keep this a pure server action
+    // (firebase-admin or firebase/storage works; here we use firebase/storage
+    //  via the existing client SDK since we're in a server action that can
+    //  import from @/lib/firebase)
+    const { storage } = await import("@/lib/firebase");
+    const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+
+    const filename = `manual_uploads/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, filename);
+    const arrayBuffer = await file.arrayBuffer();
+    await uploadBytes(storageRef, new Uint8Array(arrayBuffer), {
+      contentType: file.type || "image/jpeg",
+    });
+    const imageUrl = await getDownloadURL(storageRef);
+
+    // ── 2. POST to inference server ──────────────────────────────────────
+    const inferFormData = new FormData();
+    inferFormData.append(
+      "file",
+      new Blob([arrayBuffer], { type: file.type || "image/jpeg" }),
+      file.name
+    );
+
+    const inferRes = await fetch(INFERENCE_URL, {
+      method: "POST",
+      body: inferFormData,
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!inferRes.ok) {
+      const errText = await inferRes.text();
+      throw new Error(`Inference server error ${inferRes.status}: ${errText}`);
+    }
+
+    const inferData = await inferRes.json();
+    // inferData: { predicted_class, class_name, confidence, all_probabilities }
+
+    const className = inferData.class_name || CLASS_NAMES[inferData.predicted_class] || "Unknown";
+    const confidence = typeof inferData.confidence === "number"
+      ? parseFloat((inferData.confidence * 100).toFixed(1))
+      : 0;
+    const isHealthy = className === "Healthy Leaf";
+
+    // ── 3. Save to DB ────────────────────────────────────────────────────
+    const newRecord = await PlantHealthR.create({
+      zone_id:          zone,
+      image_url:        imageUrl,
+      health_status:    isHealthy ? "healthy" : "diseased",
+      disease_type:     isHealthy ? "N/A" : className,
+      confidence_score: confidence,
+      recommendations:  RECOMMENDATION_MAP[className] || "Consult an agronomist.",
+      severity:         SEVERITY_MAP[className] || "unknown",
+      all_probabilities: JSON.stringify(inferData.all_probabilities || {}),
+    });
+
+    return serialize({ success: true, record: newRecord });
+
+  } catch (error) {
+    console.error("[analyzePlantImage]", error);
     return { error: error.message, success: false };
   }
 }

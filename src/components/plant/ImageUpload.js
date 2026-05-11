@@ -1,64 +1,78 @@
 import React, { useState } from "react";
-// import { PlantHealthR } from "@/lib/actions";
-// import { UploadFile, InvokeLLM } from "@/integrations/Core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-// import { Progress } from "@/components/ui/progress";
-import { Upload, Camera, X } from "lucide-react";
+import { Upload, Camera, X, Loader2 } from "lucide-react";
 import { analyzePlantImage } from "@/lib/actions";
+
+const STEPS = [
+  { at: 10, label: "Preparing image…" },
+  { at: 30, label: "Uploading to storage…" },
+  { at: 60, label: "Running disease model…" },
+  { at: 90, label: "Saving result…" },
+];
 
 export default function ImageUpload({ zone, onComplete }) {
   const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [stepLabel, setStepLabel] = useState("");
+  const [error, setError] = useState(null);
 
   const handleFileSelect = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.type.startsWith('image/')) {
-      setFile(selectedFile);
+    const selected = e.target.files[0];
+    if (selected && selected.type.startsWith("image/")) {
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
+      setError(null);
     }
   };
 
   const handleUpload = async () => {
     if (!file) return;
-    
-    setUploading(true);
-    setProgress(10); // 1. Set initial progress
+    setUploading(true);
+    setError(null);
 
-    try {
-      // 2. Create FormData and append data
+    // Animate through steps
+    let stepIdx = 0;
+    const tick = setInterval(() => {
+      if (stepIdx < STEPS.length) {
+        setProgress(STEPS[stepIdx].at);
+        setStepLabel(STEPS[stepIdx].label);
+        stepIdx++;
+      }
+    }, 900);
+
+    try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("zone", zone);
 
-      setProgress(30); // 2. "Uploading"
+      const result = await analyzePlantImage(formData);
+      clearInterval(tick);
 
-      // 3. Call the single Server Action
-      // ALL the complex logic is now on the server.
-      const result = await analyzePlantImage(formData);
+      if (result.error) throw new Error(result.error);
 
-      setProgress(80); // 3. "Analyzing"
+      setProgress(100);
+      setStepLabel("Done!");
+      setTimeout(() => {
+        onComplete();
+      }, 800);
+    } catch (err) {
+      clearInterval(tick);
+      setError(err.message || "Analysis failed. Please try again.");
+      setUploading(false);
+      setProgress(0);
+    }
+  };
 
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      // 4. Handle success
-      setProgress(100);
-      setTimeout(() => {
-        onComplete(); // Refresh the parent page's list
-      }, 1000);
-
-    } catch (error) {
-      console.error("Error analyzing plant image:", error);
-      // You should add a user-facing error toast or message here
-    }
-
-    // 5. Reset the component
-    setUploading(false);
-    setProgress(0);
-    setFile(null);
-  };
+  const reset = () => {
+    setFile(null);
+    setPreview(null);
+    setProgress(0);
+    setStepLabel("");
+    setError(null);
+  };
 
   return (
     <Card className="bg-white/70 backdrop-blur border-green-200 mb-6">
@@ -72,11 +86,9 @@ export default function ImageUpload({ zone, onComplete }) {
         {!file ? (
           <div className="border-2 border-dashed border-green-300 rounded-lg p-8 text-center">
             <Upload className="w-12 h-12 mx-auto mb-4 text-green-400" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              Upload Plant Image
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Take or upload a photo of your plants for AI health analysis
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">Upload Plant Image</h3>
+            <p className="text-gray-500 mb-4 text-sm">
+              Take or upload a photo for AI-powered tea disease detection
             </p>
             <input
               type="file"
@@ -85,61 +97,74 @@ export default function ImageUpload({ zone, onComplete }) {
               className="hidden"
               id="plant-upload"
             />
-            <label htmlFor="plant-upload">
-              <Button className="bg-green-600 hover:bg-green-700" asChild>
-                <span>
-                  <Camera className="w-4 h-4 mr-2" />
-                  Choose Image
-                </span>
-              </Button>
-            </label>
+            <Button className="bg-green-600 hover:bg-green-700" asChild>
+              <label htmlFor="plant-upload" className="cursor-pointer flex items-center gap-2">
+                <Camera className="w-4 h-4" />
+                Choose Image
+              </label>
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Preview */}
             <div className="relative">
-              <img 
-                src={URL.createObjectURL(file)}
-                alt="Plant to analyze"
+              <img
+                src={preview}
+                alt="Plant to analyse"
                 className="w-full h-64 object-cover rounded-lg"
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-2 right-2 bg-white/80"
-                onClick={() => setFile(null)}
-                disabled={uploading}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              {!uploading && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute top-2 right-2 bg-white/80"
+                  onClick={reset}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
 
+            {/* Progress bar */}
             {uploading && (
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Analyzing image...</span>
-                  <span>{progress}%</span>
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {stepLabel}
+                  </span>
+                  <span className="font-medium">{progress}%</span>
                 </div>
-                {/* <Progress value={progress} className="h-2" /> */}
-                *progress Card*
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-green-500 h-2 rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
               </div>
             )}
 
-            <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setFile(null)}
-                disabled={uploading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleUpload}
-                disabled={uploading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {uploading ? "Analyzing..." : "Start Analysis"}
-              </Button>
-            </div>
+            {/* Error */}
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
+                ⚠️ {error}
+              </p>
+            )}
+
+            {/* Actions */}
+            {!uploading && (
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={reset}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Start Analysis
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
